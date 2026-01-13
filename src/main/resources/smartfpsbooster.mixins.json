@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.smartclient.fpsbooster.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "MinecraftClientMixin",
+    "GameOptionsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

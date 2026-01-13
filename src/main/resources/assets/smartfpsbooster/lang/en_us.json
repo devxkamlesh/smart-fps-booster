@@ -1,0 +1,20 @@
+{
+  "category.smartfpsbooster": "Smart FPS Booster",
+  "key.smartfpsbooster.dashboard": "Open Dashboard",
+  "key.smartfpsbooster.toggle_auto": "Toggle Auto-Optimize",
+  "key.smartfpsbooster.cycle_profiles": "Cycle Profiles",
+  
+  "smartfpsbooster.profile.max_fps": "Max FPS",
+  "smartfpsbooster.profile.balanced": "Balanced",
+  "smartfpsbooster.profile.quality": "Visual Quality",
+  "smartfpsbooster.profile.battery_saver": "Battery Saver",
+  "smartfpsbooster.profile.custom": "Custom",
+  
+  "smartfpsbooster.overlay.fps": "FPS",
+  "smartfpsbooster.overlay.avg": "Avg",
+  "smartfpsbooster.overlay.memory": "Memory",
+  
+  "smartfpsbooster.toast.profile_applied": "Profile Applied: %s",
+  "smartfpsbooster.toast.auto_enabled": "Auto-Optimization Enabled",
+  "smartfpsbooster.toast.auto_disabled": "Auto-Optimization Disabled"
+}
