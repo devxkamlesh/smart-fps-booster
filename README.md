@@ -51,7 +51,13 @@ See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 
-MIT License
+Copyright (c) 2026 Kamlesh Choudhary (DevXKamlesh). **All Rights Reserved.**
+
+Free for personal, non-commercial use. You may **not** redistribute, re-upload,
+modify and redistribute, monetize, or include this mod in modpacks without prior
+written permission. Official downloads only from the
+[GitHub repository](https://github.com/devxkamlesh/smart-fps-booster).
+See [LICENSE](LICENSE) for full terms.
 
 ## Support
 
