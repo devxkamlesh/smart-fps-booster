@@ -11,9 +11,10 @@
 
 - **Smart Profiles** - Max FPS, Balanced, Quality, Battery Saver
 - **Live FPS Dashboard** - Real-time graph, memory usage, session history
+- **Revamped UI** - Modern dashboard with gradient panels, stat cards and charts
 - **Dynamic Optimization** - Movement, combat, heavy scene detection
 - **Setting Locks** - Protect specific settings from auto-changes
-- **Lag Spike Alert** - Visual feedback when FPS drops
+- **Lag Spike Alert** - Optional red screen-edge flash on FPS drops (toggle in Settings → Visuals & Alerts)
 - **Mod Detection** - Works with Sodium, Lithium, Iris
 
 ## Keybinds
@@ -34,8 +35,14 @@
 
 ## Supported Versions
 
-- Minecraft 1.21.4+ (Fabric)
-- Minecraft 1.20.1 - 1.21.3 (Fabric)
+- Minecraft 26.1 & 26.2 (Fabric) — requires Java 25
+- Requires [Fabric API](https://modrinth.com/mod/fabric-api)
+
+> Older Minecraft versions (1.20.x – 1.21.x) are supported by Smart FPS Booster v1.x releases.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## Screenshots
 

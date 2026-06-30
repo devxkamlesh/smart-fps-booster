@@ -5,396 +5,286 @@ import com.smartclient.fpsbooster.config.ModConfig;
 import com.smartclient.fpsbooster.optimization.BenchmarkManager;
 import com.smartclient.fpsbooster.profile.OptimizationProfile;
 import com.smartclient.fpsbooster.profile.ProfileManager;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class SettingsScreen extends Screen {
     private final Screen parent;
-    private static final int PANEL_WIDTH = 340;
+    private static final int PANEL_WIDTH = 360;
     private static final int PANEL_HEIGHT = 360;
     
     private int scrollOffset = 0;
-    private int maxScroll = 250;
+    private int maxScroll = 0;
+    
+    // Geometry, recomputed each init()
+    private int panelLeft, panelTop, contentX, contentW, contentTop, contentBottom;
+    private final List<int[]> sectionMarks = new ArrayList<>(); // {virtualY}
+    private final List<String> sectionLabels = new ArrayList<>();
     
     public SettingsScreen(Screen parent) {
-        super(Text.literal("Settings"));
+        super(Component.literal("Settings"));
         this.parent = parent;
     }
     
     @Override
     protected void init() {
+        sectionMarks.clear();
+        sectionLabels.clear();
+        
         SmartFPSBoosterClient mod = SmartFPSBoosterClient.getInstance();
         ModConfig config = mod.getConfig();
-        ProfileManager profileManager = mod.getProfileManager();
+        ProfileManager pm = mod.getProfileManager();
+        BenchmarkManager benchmark = mod.getOptimizationManager().getBenchmarkManager();
         
         int centerX = this.width / 2;
-        int centerY = this.height / 2;
-        int panelLeft = centerX - PANEL_WIDTH / 2;
-        int panelTop = centerY - PANEL_HEIGHT / 2;
+        panelLeft = centerX - PANEL_WIDTH / 2;
+        panelTop = this.height / 2 - PANEL_HEIGHT / 2;
+        int pad = 16;
+        contentX = panelLeft + pad;
+        contentW = PANEL_WIDTH - 2 * pad;
+        contentTop = panelTop + 30;
+        contentBottom = panelTop + PANEL_HEIGHT - 38;
+        int halfGap = 8;
+        int halfW = (contentW - halfGap) / 2;
+        int col2 = contentX + halfW + halfGap;
         
-        int buttonWidth = PANEL_WIDTH - 40;
-        int halfWidth = (buttonWidth - 10) / 2;
-        int buttonX = panelLeft + 20;
-        int col1 = buttonX;
-        int col2 = buttonX + halfWidth + 10;
+        Cursor c = new Cursor();
         
-        int contentTop = panelTop + 30;
-        int contentBottom = panelTop + PANEL_HEIGHT - 45;
-        
-        // ═══════════════════════════════════════════
-        // PROFILE SECTION
-        // ═══════════════════════════════════════════
-        int y = panelTop + 45 - scrollOffset;
-        
+        // ── Profiles ─────────────────────────────────────────────────
+        section(c, "Profiles");
         OptimizationProfile[] profiles = {
-            OptimizationProfile.MAX_FPS,
-            OptimizationProfile.BALANCED,
-            OptimizationProfile.QUALITY,
-            OptimizationProfile.BATTERY_SAVER
+            OptimizationProfile.MAX_FPS, OptimizationProfile.BALANCED,
+            OptimizationProfile.QUALITY, OptimizationProfile.BATTERY_SAVER
         };
-        
-        for (int i = 0; i < profiles.length; i++) {
-            final OptimizationProfile profile = profiles[i];
-            int btnX = (i % 2 == 0) ? col1 : col2;
-            int btnY = y + (i / 2) * 24;
-            
-            if (btnY > contentTop && btnY < contentBottom) {
-                boolean isSelected = profileManager.getCurrentProfile() == profile;
-                String prefix = isSelected ? "● " : "○ ";
-                
-                this.addDrawableChild(ButtonWidget.builder(
-                    Text.literal(prefix + profile.getDisplayName()),
-                    button -> {
-                        profileManager.applyProfile(profile);
-                        this.clearAndInit();
-                    }
-                ).dimensions(btnX, btnY, halfWidth, 20).build());
+        for (int i = 0; i < profiles.length; i += 2) {
+            int rowY = c.row();
+            for (int j = 0; j < 2 && i + j < profiles.length; j++) {
+                final OptimizationProfile p = profiles[i + j];
+                boolean sel = pm.getCurrentProfile() == p;
+                int bx = (j == 0) ? contentX : col2;
+                addIfVisible(bx, rowY, halfW, Button.builder(
+                    Component.literal((sel ? "\u25C9 " : "\u25CB ") + p.getDisplayName()),
+                    b -> { pm.applyProfile(p); this.rebuildWidgets(); }
+                ));
             }
         }
         
-        // ═══════════════════════════════════════════
-        // OPTIMIZATION SECTION
-        // ═══════════════════════════════════════════
-        y = panelTop + 105 - scrollOffset;
-        
-        if (y > contentTop && y < contentBottom) {
-            boolean autoOn = config.isAutoOptimize();
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Auto-Optimize: " + (autoOn ? "ON" : "OFF")),
-                button -> {
-                    config.setAutoOptimize(!config.isAutoOptimize());
-                    this.clearAndInit();
+        // ── Optimization ─────────────────────────────────────────────
+        section(c, "Optimization");
+        int ay = c.row();
+        addIfVisible(contentX, ay, contentW, Button.builder(
+            Component.literal("Auto-Optimize: " + onOff(config.isAutoOptimize())),
+            b -> { config.setAutoOptimize(!config.isAutoOptimize()); this.rebuildWidgets(); }));
+        ay = c.row();
+        if (visible(ay)) {
+            this.addRenderableWidget(new AbstractSliderButton(contentX, ay, contentW, 20,
+                Component.literal("Target FPS: " + config.getTargetFps()), config.getTargetFps() / 240.0) {
+                @Override protected void updateMessage() {
+                    int f = Math.max(30, (int) (this.value * 240));
+                    this.setMessage(Component.literal("Target FPS: " + f));
                 }
-            ).dimensions(buttonX, y, buttonWidth, 20).build());
-        }
-        
-        y += 24;
-        
-        if (y > contentTop && y < contentBottom) {
-            this.addDrawableChild(new SliderWidget(buttonX, y, buttonWidth, 20,
-                Text.literal("Target FPS: " + config.getTargetFps()), config.getTargetFps() / 240.0) {
-                @Override
-                protected void updateMessage() {
-                    int fps = (int) (this.value * 240);
-                    if (fps < 30) fps = 30;
-                    this.setMessage(Text.literal("Target FPS: " + fps));
-                }
-                @Override
-                protected void applyValue() {
-                    int fps = (int) (this.value * 240);
-                    if (fps < 30) fps = 30;
-                    config.setTargetFps(fps);
+                @Override protected void applyValue() {
+                    config.setTargetFps(Math.max(30, (int) (this.value * 240)));
                 }
             });
         }
         
-        // ═══════════════════════════════════════════
-        // TUNING SECTION
-        // ═══════════════════════════════════════════
-        y = panelTop + 165 - scrollOffset;
+        // ── Smart Tuning ─────────────────────────────────────────────
+        section(c, "Smart Tuning");
+        int r = c.row();
+        addToggle(config, contentX, r, halfW, "Movement", config.isMovementBasedTuning(), config::setMovementBasedTuning);
+        addToggle(config, col2, r, halfW, "Combat", config.isCombatOptimization(), config::setCombatOptimization);
+        r = c.row();
+        addToggle(config, contentX, r, halfW, "Heavy Scene", config.isHeavySceneDetection(), config::setHeavySceneDetection);
+        addToggle(config, col2, r, halfW, "Dimension", config.isDimensionPresets(), config::setDimensionPresets);
         
-        if (y > contentTop && y < contentBottom) {
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Movement: " + (config.isMovementBasedTuning() ? "ON" : "OFF")),
-                button -> {
-                    config.setMovementBasedTuning(!config.isMovementBasedTuning());
-                    button.setMessage(Text.literal("Movement: " + (config.isMovementBasedTuning() ? "ON" : "OFF")));
-                }
-            ).dimensions(col1, y, halfWidth, 20).build());
-            
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Combat: " + (config.isCombatOptimization() ? "ON" : "OFF")),
-                button -> {
-                    config.setCombatOptimization(!config.isCombatOptimization());
-                    button.setMessage(Text.literal("Combat: " + (config.isCombatOptimization() ? "ON" : "OFF")));
-                }
-            ).dimensions(col2, y, halfWidth, 20).build());
+        // ── Locks ────────────────────────────────────────────────────
+        section(c, "Locks");
+        r = c.row();
+        boolean rdLocked = config.isSettingLocked("render_distance");
+        addIfVisible(contentX, r, halfW, Button.builder(
+            Component.literal((rdLocked ? "\uD83D\uDD12" : "\uD83D\uDD13") + " Render Dist"),
+            b -> { config.toggleSettingLock("render_distance"); this.rebuildWidgets(); }));
+        boolean gfxLocked = config.isSettingLocked("graphics");
+        addIfVisible(col2, r, halfW, Button.builder(
+            Component.literal((gfxLocked ? "\uD83D\uDD12" : "\uD83D\uDD13") + " Graphics"),
+            b -> { config.toggleSettingLock("graphics"); this.rebuildWidgets(); }));
+        
+        // ── Overlay ──────────────────────────────────────────────────
+        section(c, "Overlay");
+        r = c.row();
+        addIfVisible(contentX, r, halfW, Button.builder(
+            Component.literal("Overlay: " + onOff(config.isShowFpsOverlay())),
+            b -> { config.setShowFpsOverlay(!config.isShowFpsOverlay()); this.rebuildWidgets(); }));
+        addIfVisible(col2, r, halfW, Button.builder(
+            Component.literal("Style: " + cap(config.getOverlayStyle().name())),
+            b -> {
+                ModConfig.OverlayStyle[] s = ModConfig.OverlayStyle.values();
+                config.setOverlayStyle(s[(config.getOverlayStyle().ordinal() + 1) % s.length]);
+                this.rebuildWidgets();
+            }));
+        r = c.row();
+        addIfVisible(contentX, r, halfW, Button.builder(
+            Component.literal("Position: " + posName(config)),
+            b -> {
+                ModConfig.OverlayPosition[] p = ModConfig.OverlayPosition.values();
+                config.setOverlayPosition(p[(config.getOverlayPosition().ordinal() + 1) % p.length]);
+                config.setUseCustomPosition(false);
+                this.rebuildWidgets();
+            }));
+        addIfVisible(col2, r, halfW, Button.builder(
+            Component.literal("Drag: " + (config.isUseCustomPosition() ? "Custom" : "Preset")),
+            b -> {
+                config.setUseCustomPosition(!config.isUseCustomPosition());
+                if (config.isUseCustomPosition()) NotificationManager.showInfo("Drag overlay to move it");
+                this.rebuildWidgets();
+            }));
+        
+        // ── Visuals (NEW) ────────────────────────────────────────────
+        section(c, "Visuals & Alerts");
+        r = c.row();
+        addToggle(config, contentX, r, halfW, "Edge Alert", config.isShowLagSpikeAlert(), config::setShowLagSpikeAlert);
+        addToggle(config, col2, r, halfW, "Notifications", config.isShowNotifications(), config::setShowNotifications);
+        r = c.row();
+        addToggle(config, contentX, r, halfW, "Auto Switch", config.isUseContextProfiles(), config::setUseContextProfiles);
+        
+        // ── Tools ────────────────────────────────────────────────────
+        section(c, "Tools");
+        r = c.row();
+        if (benchmark.isRunning()) {
+            addIfVisible(contentX, r, contentW, Button.builder(
+                Component.literal("Benchmarking... " + (int) (benchmark.getProgress() * 100) + "%"), b -> {}));
+        } else {
+            String sc = config.getLastBenchmarkScore() > 0 ? " (Score: " + config.getLastBenchmarkScore() + ")" : "";
+            addIfVisible(contentX, r, contentW, Button.builder(
+                Component.literal("Run Benchmark" + sc),
+                b -> {
+                    benchmark.startBenchmark(() -> this.rebuildWidgets());
+                    NotificationManager.showInfo("Benchmark started - play for 10 sec");
+                    this.rebuildWidgets();
+                }));
         }
         
-        y += 24;
+        // ── Reset ────────────────────────────────────────────────────
+        section(c, "Reset");
+        r = c.row();
+        addIfVisible(contentX, r, contentW, Button.builder(
+            Component.literal("\u21BA Reset to Defaults"),
+            b -> {
+                config.setProfile(OptimizationProfile.MAX_FPS);
+                config.setTargetFps(120);
+                config.setAutoOptimize(true);
+                config.setShowFpsOverlay(true);
+                config.setOverlayStyle(ModConfig.OverlayStyle.MINIMAL);
+                config.setMovementBasedTuning(true);
+                config.setCombatOptimization(true);
+                config.setHeavySceneDetection(true);
+                config.setDimensionPresets(true);
+                config.setShowNotifications(true);
+                config.setShowLagSpikeAlert(true);
+                config.setUseContextProfiles(false);
+                pm.applyProfile(OptimizationProfile.MAX_FPS);
+                NotificationManager.showInfo("Settings reset to defaults");
+                this.rebuildWidgets();
+            }));
         
-        if (y > contentTop && y < contentBottom) {
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Heavy Scene: " + (config.isHeavySceneDetection() ? "ON" : "OFF")),
-                button -> {
-                    config.setHeavySceneDetection(!config.isHeavySceneDetection());
-                    button.setMessage(Text.literal("Heavy Scene: " + (config.isHeavySceneDetection() ? "ON" : "OFF")));
-                }
-            ).dimensions(col1, y, halfWidth, 20).build());
-            
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Dimension: " + (config.isDimensionPresets() ? "ON" : "OFF")),
-                button -> {
-                    config.setDimensionPresets(!config.isDimensionPresets());
-                    button.setMessage(Text.literal("Dimension: " + (config.isDimensionPresets() ? "ON" : "OFF")));
-                }
-            ).dimensions(col2, y, halfWidth, 20).build());
-        }
+        // total content height + scroll clamp
+        int contentHeight = c.vy + 8;
+        int viewH = contentBottom - contentTop;
+        maxScroll = Math.max(0, contentHeight - viewH);
+        scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset));
         
-        // ═══════════════════════════════════════════
-        // LOCK SECTION
-        // ═══════════════════════════════════════════
-        y = panelTop + 225 - scrollOffset;
-        
-        if (y > contentTop && y < contentBottom) {
-            boolean rdLocked = config.isSettingLocked("render_distance");
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal((rdLocked ? "🔒" : "🔓") + " Render Dist"),
-                button -> {
-                    config.toggleSettingLock("render_distance");
-                    this.clearAndInit();
-                }
-            ).dimensions(col1, y, halfWidth, 20).build());
-            
-            boolean gfxLocked = config.isSettingLocked("graphics");
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal((gfxLocked ? "🔒" : "🔓") + " Graphics"),
-                button -> {
-                    config.toggleSettingLock("graphics");
-                    this.clearAndInit();
-                }
-            ).dimensions(col2, y, halfWidth, 20).build());
-        }
-        
-        // ═══════════════════════════════════════════
-        // OVERLAY SECTION
-        // ═══════════════════════════════════════════
-        y = panelTop + 260 - scrollOffset;
-        
-        if (y > contentTop && y < contentBottom) {
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Overlay: " + (config.isShowFpsOverlay() ? "ON" : "OFF")),
-                button -> {
-                    config.setShowFpsOverlay(!config.isShowFpsOverlay());
-                    this.clearAndInit();
-                }
-            ).dimensions(col1, y, halfWidth, 20).build());
-            
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Style: " + config.getOverlayStyle().name()),
-                button -> {
-                    ModConfig.OverlayStyle[] styles = ModConfig.OverlayStyle.values();
-                    int next = (config.getOverlayStyle().ordinal() + 1) % styles.length;
-                    config.setOverlayStyle(styles[next]);
-                    button.setMessage(Text.literal("Style: " + config.getOverlayStyle().name()));
-                }
-            ).dimensions(col2, y, halfWidth, 20).build());
-        }
-        
-        y += 24;
-        
-        // Overlay Position
-        if (y > contentTop && y < contentBottom) {
-            String posName = switch (config.getOverlayPosition()) {
-                case TOP_LEFT -> "Top-Left";
-                case TOP_RIGHT -> "Top-Right";
-                case BOTTOM_LEFT -> "Bottom-Left";
-                case BOTTOM_RIGHT -> "Bottom-Right";
-            };
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Position: " + posName),
-                button -> {
-                    ModConfig.OverlayPosition[] positions = ModConfig.OverlayPosition.values();
-                    int next = (config.getOverlayPosition().ordinal() + 1) % positions.length;
-                    config.setOverlayPosition(positions[next]);
-                    config.setUseCustomPosition(false);
-                    this.clearAndInit();
-                }
-            ).dimensions(col1, y, halfWidth, 20).build());
-            
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Drag: " + (config.isUseCustomPosition() ? "Custom" : "Preset")),
-                button -> {
-                    config.setUseCustomPosition(!config.isUseCustomPosition());
-                    if (config.isUseCustomPosition()) {
-                        NotificationManager.showInfo("Drag overlay to move it");
-                    }
-                    this.clearAndInit();
-                }
-            ).dimensions(col2, y, halfWidth, 20).build());
-        }
-        
-        // ═══════════════════════════════════════════
-        // TOOLS SECTION
-        // ═══════════════════════════════════════════
-        y = panelTop + 320 - scrollOffset;
-        
-        if (y > contentTop && y < contentBottom) {
-            BenchmarkManager benchmark = mod.getOptimizationManager().getBenchmarkManager();
-            if (benchmark.isRunning()) {
-                this.addDrawableChild(ButtonWidget.builder(
-                    Text.literal("Benchmarking... " + (int)(benchmark.getProgress() * 100) + "%"),
-                    button -> {}
-                ).dimensions(buttonX, y, buttonWidth, 20).build());
-            } else {
-                String scoreText = config.getLastBenchmarkScore() > 0 ? 
-                    " (Score: " + config.getLastBenchmarkScore() + ")" : "";
-                this.addDrawableChild(ButtonWidget.builder(
-                    Text.literal("Run Benchmark" + scoreText),
-                    button -> {
-                        benchmark.startBenchmark(() -> this.clearAndInit());
-                        NotificationManager.showInfo("Benchmark started - play for 10 sec");
-                        this.clearAndInit();
-                    }
-                ).dimensions(buttonX, y, buttonWidth, 20).build());
-            }
-        }
-        
-        // ═══════════════════════════════════════════
-        // EXTRAS SECTION
-        // ═══════════════════════════════════════════
-        y = panelTop + 355 - scrollOffset;
-        
-        if (y > contentTop && y < contentBottom) {
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Notify: " + (config.isShowNotifications() ? "ON" : "OFF")),
-                button -> {
-                    config.setShowNotifications(!config.isShowNotifications());
-                    button.setMessage(Text.literal("Notify: " + (config.isShowNotifications() ? "ON" : "OFF")));
-                }
-            ).dimensions(col1, y, halfWidth, 20).build());
-            
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Auto Switch: " + (config.isUseContextProfiles() ? "ON" : "OFF")),
-                button -> {
-                    config.setUseContextProfiles(!config.isUseContextProfiles());
-                    button.setMessage(Text.literal("Auto Switch: " + (config.isUseContextProfiles() ? "ON" : "OFF")));
-                }
-            ).dimensions(col2, y, halfWidth, 20).build());
-        }
-        
-        // ═══════════════════════════════════════════
-        // RESET SECTION
-        // ═══════════════════════════════════════════
-        y = panelTop + 390 - scrollOffset;
-        
-        if (y > contentTop && y < contentBottom) {
-            this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("⟲ Reset to Defaults"),
-                button -> {
-                    // Reset all settings to defaults
-                    config.setProfile(OptimizationProfile.MAX_FPS);
-                    config.setTargetFps(120);
-                    config.setAutoOptimize(true);
-                    config.setShowFpsOverlay(true);
-                    config.setOverlayStyle(ModConfig.OverlayStyle.MINIMAL);
-                    config.setMovementBasedTuning(true);
-                    config.setCombatOptimization(true);
-                    config.setHeavySceneDetection(true);
-                    config.setDimensionPresets(true);
-                    config.setShowNotifications(true);
-                    config.setUseContextProfiles(false);
-                    profileManager.applyProfile(OptimizationProfile.MAX_FPS);
-                    NotificationManager.showInfo("Settings reset to defaults");
-                    this.clearAndInit();
-                }
-            ).dimensions(buttonX, y, buttonWidth, 20).build());
-        }
-        
-        // Done button (always visible)
-        this.addDrawableChild(ButtonWidget.builder(
-            Text.literal("Done"),
-            button -> this.close()
-        ).dimensions(centerX - 50, panelTop + PANEL_HEIGHT - 28, 100, 20).build());
+        // Done button (fixed)
+        this.addRenderableWidget(Button.builder(
+            Component.literal("Done"), b -> this.onClose()
+        ).bounds(centerX - 52, panelTop + PANEL_HEIGHT - 28, 104, 20).build());
+    }
+    
+    // ── Layout helpers ───────────────────────────────────────────────
+    private class Cursor {
+        int vy = 8;
+        int row() { int y = contentTop + vy - scrollOffset; vy += 24; return y; }
+    }
+    
+    private void section(Cursor c, String label) {
+        sectionMarks.add(new int[]{ c.vy });
+        sectionLabels.add(label);
+        c.vy += 15;
+    }
+    
+    private boolean visible(int y) {
+        return y >= contentTop - 1 && y + 20 <= contentBottom + 1;
+    }
+    
+    private void addIfVisible(int x, int y, int w, Button.Builder builder) {
+        if (visible(y)) this.addRenderableWidget(builder.bounds(x, y, w, 20).build());
+    }
+    
+    private void addToggle(ModConfig config, int x, int y, int w, String label, boolean state, java.util.function.Consumer<Boolean> setter) {
+        if (!visible(y)) return;
+        this.addRenderableWidget(Button.builder(
+            Component.literal(label + ": " + onOff(state)),
+            b -> { setter.accept(!state); b.setMessage(Component.literal(label + ": " + onOff(!state))); }
+        ).bounds(x, y, w, 20).build());
+    }
+    
+    private static String onOff(boolean b) { return b ? "ON" : "OFF"; }
+    private static String cap(String s) { return s.charAt(0) + s.substring(1).toLowerCase(); }
+    private static String posName(ModConfig c) {
+        return switch (c.getOverlayPosition()) {
+            case TOP_LEFT -> "Top-Left"; case TOP_RIGHT -> "Top-Right";
+            case BOTTOM_LEFT -> "Bot-Left"; case BOTTOM_RIGHT -> "Bot-Right";
+        };
     }
     
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        context.fill(0, 0, this.width, this.height, 0x90000000);
+    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
+        Theme.backdrop(g, this.width, this.height);
+        Theme.panel(g, panelLeft, panelTop, PANEL_WIDTH, PANEL_HEIGHT);
+        Theme.titleBar(g, this.font, panelLeft, panelTop, PANEL_WIDTH, "\u2699 Settings");
         
-        int centerX = this.width / 2;
-        int centerY = this.height / 2;
-        int panelLeft = centerX - PANEL_WIDTH / 2;
-        int panelTop = centerY - PANEL_HEIGHT / 2;
-        
-        context.fill(panelLeft, panelTop, panelLeft + PANEL_WIDTH, panelTop + PANEL_HEIGHT, 0xF0181830);
-        context.drawBorder(panelLeft, panelTop, PANEL_WIDTH, PANEL_HEIGHT, 0xFF4080c0);
-        
-        context.drawCenteredTextWithShadow(this.textRenderer, "Smart FPS Booster v1.0.0", centerX, panelTop + 10, 0xFFbbe1fa);
-        
-        int leftCol = panelLeft + 20;
-        int labelY;
-        
-        // Section labels (only show if visible)
-        labelY = panelTop + 34 - scrollOffset;
-        if (labelY > panelTop + 25) context.drawTextWithShadow(this.textRenderer, "Profile", leftCol, labelY, 0xFF4080c0);
-        
-        labelY = panelTop + 94 - scrollOffset;
-        if (labelY > panelTop + 25 && labelY < panelTop + PANEL_HEIGHT - 50) 
-            context.drawTextWithShadow(this.textRenderer, "Optimization", leftCol, labelY, 0xFF4080c0);
-        
-        labelY = panelTop + 154 - scrollOffset;
-        if (labelY > panelTop + 25 && labelY < panelTop + PANEL_HEIGHT - 50) 
-            context.drawTextWithShadow(this.textRenderer, "Tuning", leftCol, labelY, 0xFF4080c0);
-        
-        // Lock and Overlay sections - no labels, just icons on buttons
-        
-        labelY = panelTop + 249 - scrollOffset;
-        if (labelY > panelTop + 25 && labelY < panelTop + PANEL_HEIGHT - 50) 
-            context.drawTextWithShadow(this.textRenderer, "Overlay", leftCol, labelY, 0xFF4080c0);
-        
-        labelY = panelTop + 309 - scrollOffset;
-        if (labelY > panelTop + 25 && labelY < panelTop + PANEL_HEIGHT - 50) 
-            context.drawTextWithShadow(this.textRenderer, "Tools", leftCol, labelY, 0xFF4080c0);
-        
-        labelY = panelTop + 344 - scrollOffset;
-        if (labelY > panelTop + 25 && labelY < panelTop + PANEL_HEIGHT - 50) 
-            context.drawTextWithShadow(this.textRenderer, "Extras", leftCol, labelY, 0xFF4080c0);
-        
-        labelY = panelTop + 379 - scrollOffset;
-        if (labelY > panelTop + 25 && labelY < panelTop + PANEL_HEIGHT - 50) 
-            context.drawTextWithShadow(this.textRenderer, "Reset", leftCol, labelY, 0xFFff6b6b);
-        
-        // Scrollbar
-        if (maxScroll > 0) {
-            int scrollbarX = panelLeft + PANEL_WIDTH - 8;
-            int scrollbarY = panelTop + 30;
-            int scrollbarHeight = PANEL_HEIGHT - 70;
-            context.fill(scrollbarX, scrollbarY, scrollbarX + 4, scrollbarY + scrollbarHeight, 0xFF303050);
-            int thumbHeight = Math.max(20, scrollbarHeight * scrollbarHeight / (scrollbarHeight + maxScroll));
-            int thumbY = scrollbarY + (scrollOffset * (scrollbarHeight - thumbHeight) / Math.max(1, maxScroll));
-            context.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbHeight, 0xFF4080c0);
+        // section labels (clipped to content band)
+        for (int i = 0; i < sectionMarks.size(); i++) {
+            int ay = contentTop + sectionMarks.get(i)[0] - scrollOffset;
+            if (ay >= contentTop - 1 && ay <= contentBottom - 6) {
+                Theme.section(g, this.font, contentX, ay, contentW, sectionLabels.get(i));
+            }
         }
         
-        super.render(context, mouseX, mouseY, delta);
+        // scrollbar
+        if (maxScroll > 0) {
+            int trackX = panelLeft + PANEL_WIDTH - 7;
+            int trackY = contentTop;
+            int trackH = contentBottom - contentTop;
+            g.fill(trackX, trackY, trackX + 3, trackY + trackH, Theme.TRACK);
+            int thumbH = Math.max(24, trackH * trackH / (trackH + maxScroll));
+            int thumbY = trackY + (scrollOffset * (trackH - thumbH) / maxScroll);
+            g.fillGradient(trackX, thumbY, trackX + 3, thumbY + thumbH, Theme.ACCENT_LIGHT, Theme.ACCENT);
+        }
+        
+        Theme.centered(g, this.font, "v2.0.0", panelLeft + PANEL_WIDTH / 2, panelTop + PANEL_HEIGHT - 12, Theme.TEXT_MUTED);
     }
     
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset - (int)(verticalAmount * 20)));
-        this.clearAndInit();
+        if (maxScroll <= 0) return false;
+        scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset - (int) (verticalAmount * 20)));
+        this.rebuildWidgets();
         return true;
     }
     
     @Override
-    public void close() {
+    public void onClose() {
         SmartFPSBoosterClient.getInstance().getConfig().save();
-        this.client.setScreen(parent);
+        this.minecraft.setScreenAndShow(parent);
     }
     
     @Override
-    public boolean shouldPause() { return false; }
+    public boolean isPauseScreen() { return false; }
 }

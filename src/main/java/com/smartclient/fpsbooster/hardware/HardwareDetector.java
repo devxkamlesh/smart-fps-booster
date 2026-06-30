@@ -1,7 +1,7 @@
 package com.smartclient.fpsbooster.hardware;
 
 import com.smartclient.fpsbooster.SmartFPSBoosterClient;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 public class HardwareDetector {
     private int cpuCores;
@@ -38,7 +38,7 @@ public class HardwareDetector {
             gpuRenderer = org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_RENDERER);
             gpuDetected = true;
             
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
             if (client.getWindow() != null) {
                 screenWidth = client.getWindow().getWidth();
                 screenHeight = client.getWindow().getHeight();

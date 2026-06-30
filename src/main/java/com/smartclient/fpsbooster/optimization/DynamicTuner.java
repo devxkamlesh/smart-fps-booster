@@ -2,10 +2,10 @@ package com.smartclient.fpsbooster.optimization;
 
 import com.smartclient.fpsbooster.config.ModConfig;
 import com.smartclient.fpsbooster.profile.ProfileManager;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.GameOptions;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.world.World;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
 
 public class DynamicTuner {
     private final ModConfig config;
@@ -45,10 +45,10 @@ public class DynamicTuner {
     }
     
     public void evaluate(FPSMonitor monitor) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.player == null || client.world == null) return;
+        Minecraft client = Minecraft.getInstance();
+        if (client == null || client.player == null || client.level == null) return;
         
-        GameOptions options = client.options;
+        Options options = client.options;
         if (options == null) return;
         
         int targetFps = config.getTargetFps();
@@ -89,7 +89,7 @@ public class DynamicTuner {
         // Check if render distance is locked
         if (config.isSettingLocked("render_distance")) return;
         
-        int currentRd = options.getViewDistance().getValue();
+        int currentRd = options.renderDistance().get();
         
         // Only reduce if FPS is CRITICALLY low (below 20 FPS average for extended time)
         boolean criticallyLowFps = avgFps < 20 && lowFpsCounter > 5;
@@ -101,14 +101,14 @@ public class DynamicTuner {
         // Only reduce, never increase (increasing causes chunk loads)
         if (currentRd > 6 && currentRd != lastSetRenderDistance) {
             int newValue = Math.max(6, currentRd - 2);
-            options.getViewDistance().setValue(newValue);
+            options.renderDistance().set(newValue);
             lastSetRenderDistance = newValue;
             currentAdjustment = getProfileRenderDistance() - newValue;
             lastAdjustmentTime = now;
         }
     }
     
-    private void updateMovementState(MinecraftClient client) {
+    private void updateMovementState(Minecraft client) {
         if (client.player == null) return;
         
         double x = client.player.getX();
@@ -121,7 +121,7 @@ public class DynamicTuner {
         double distSq = dx * dx + dy * dy + dz * dz;
         
         isMoving = distSq > 0.01;
-        isSprintingOrFlying = client.player.isSprinting() || client.player.isGliding() || 
+        isSprintingOrFlying = client.player.isSprinting() || client.player.isFallFlying() || 
                               (client.player.getAbilities().flying && distSq > 0.1);
         
         lastX = x;
@@ -129,12 +129,12 @@ public class DynamicTuner {
         lastZ = z;
     }
     
-    private void updateCombatState(MinecraftClient client) {
+    private void updateCombatState(Minecraft client) {
         if (client.player == null) return;
         
         long now = System.currentTimeMillis();
         
-        if (client.player.hurtTime > 0 || client.player.handSwinging) {
+        if (client.player.hurtTime > 0 || client.player.swinging) {
             lastCombatTime = now;
             inCombat = true;
         }
@@ -144,13 +144,13 @@ public class DynamicTuner {
         }
     }
     
-    private void updateDimensionState(MinecraftClient client) {
-        if (client.world == null) return;
+    private void updateDimensionState(Minecraft client) {
+        if (client.level == null) return;
         
-        RegistryKey<World> dimKey = client.world.getRegistryKey();
+        ResourceKey<Level> dimKey = client.level.dimension();
         if (dimKey == null) return;
         
-        currentDimension = dimKey.getValue().getPath();
+        currentDimension = dimKey.identifier().getPath();
     }
     
     public void onProfileChange() {

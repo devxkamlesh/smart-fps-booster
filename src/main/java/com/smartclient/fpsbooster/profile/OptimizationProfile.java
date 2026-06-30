@@ -1,7 +1,7 @@
 package com.smartclient.fpsbooster.profile;
 
-import net.minecraft.client.option.CloudRenderMode;
-import net.minecraft.client.option.GraphicsMode;
+import net.minecraft.client.CloudStatus;
+import net.minecraft.client.GraphicsPreset;
 
 public enum OptimizationProfile {
     MAX_FPS(
@@ -9,9 +9,9 @@ public enum OptimizationProfile {
         "Maximum performance for competitive play",
         144,
         6, // render distance - lower for max fps
-        GraphicsMode.FAST,
+        GraphicsPreset.FAST,
         0, // particles (0=minimal, 1=decreased, 2=all)
-        CloudRenderMode.OFF,
+        CloudStatus.OFF,
         50, // entity distance %
         false, // vsync OFF for max fps
         false, // smooth lighting OFF
@@ -22,9 +22,9 @@ public enum OptimizationProfile {
         "Best of both worlds",
         60,
         12,
-        GraphicsMode.FANCY,
+        GraphicsPreset.FANCY,
         1, // decreased
-        CloudRenderMode.FAST,
+        CloudStatus.FAST,
         75,
         false,
         true,
@@ -35,9 +35,9 @@ public enum OptimizationProfile {
         "Maximum beauty, lower FPS",
         30,
         16,
-        GraphicsMode.FABULOUS,
+        GraphicsPreset.FABULOUS,
         2, // all
-        CloudRenderMode.FANCY,
+        CloudStatus.FANCY,
         100,
         false,
         true,
@@ -48,9 +48,9 @@ public enum OptimizationProfile {
         "For laptops, stable 30 FPS",
         30,
         6,
-        GraphicsMode.FAST,
+        GraphicsPreset.FAST,
         0, // minimal
-        CloudRenderMode.OFF,
+        CloudStatus.OFF,
         50,
         true, // vsync on to cap fps
         false,
@@ -61,9 +61,9 @@ public enum OptimizationProfile {
         "Your personalized settings",
         60,
         12,
-        GraphicsMode.FANCY,
+        GraphicsPreset.FANCY,
         2,
-        CloudRenderMode.FAST,
+        CloudStatus.FAST,
         100,
         false,
         true,
@@ -74,17 +74,17 @@ public enum OptimizationProfile {
     private final String description;
     private final int targetFps;
     private final int renderDistance;
-    private final GraphicsMode graphicsMode;
+    private final GraphicsPreset graphicsMode;
     private final int particlesLevel; // 0=minimal, 1=decreased, 2=all
-    private final CloudRenderMode cloudMode;
+    private final CloudStatus cloudMode;
     private final int entityDistancePercent;
     private final boolean vsync;
     private final boolean smoothLighting;
     private final int mipmapLevels;
     
     OptimizationProfile(String displayName, String description, int targetFps,
-                        int renderDistance, GraphicsMode graphicsMode,
-                        int particlesLevel, CloudRenderMode cloudMode,
+                        int renderDistance, GraphicsPreset graphicsMode,
+                        int particlesLevel, CloudStatus cloudMode,
                         int entityDistancePercent, boolean vsync,
                         boolean smoothLighting, int mipmapLevels) {
         this.displayName = displayName;
@@ -104,11 +104,12 @@ public enum OptimizationProfile {
     public String getDescription() { return description; }
     public int getTargetFps() { return targetFps; }
     public int getRenderDistance() { return renderDistance; }
-    public GraphicsMode getGraphicsMode() { return graphicsMode; }
+    public GraphicsPreset getGraphicsMode() { return graphicsMode; }
     public int getParticlesLevel() { return particlesLevel; }
-    public CloudRenderMode getCloudMode() { return cloudMode; }
+    public CloudStatus getCloudMode() { return cloudMode; }
     public int getEntityDistancePercent() { return entityDistancePercent; }
     public boolean isVsync() { return vsync; }
     public boolean isSmoothLighting() { return smoothLighting; }
     public int getMipmapLevels() { return mipmapLevels; }
 }
+

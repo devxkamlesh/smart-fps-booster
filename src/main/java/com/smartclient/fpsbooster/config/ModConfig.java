@@ -55,6 +55,9 @@ public class ModConfig {
     // v2.0 - Notifications
     private boolean showNotifications = true;
     
+    // v2.1 - Visual alerts
+    private boolean showLagSpikeAlert = true;
+    
     // v2.0 - Performance history (last 10 sessions avg FPS)
     private int[] fpsHistory = new int[10];
     private int historyIndex = 0;
@@ -253,6 +256,10 @@ public class ModConfig {
     // v2.0 - Notifications
     public boolean isShowNotifications() { return showNotifications; }
     public void setShowNotifications(boolean show) { showNotifications = show; save(); }
+    
+    // v2.1 - Lag spike screen-edge alert
+    public boolean isShowLagSpikeAlert() { return showLagSpikeAlert; }
+    public void setShowLagSpikeAlert(boolean show) { showLagSpikeAlert = show; save(); }
     
     // v2.0 - Performance history
     public int[] getFpsHistory() { return fpsHistory; }

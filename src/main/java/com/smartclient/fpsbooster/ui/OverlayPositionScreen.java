@@ -2,10 +2,10 @@ package com.smartclient.fpsbooster.ui;
 
 import com.smartclient.fpsbooster.SmartFPSBoosterClient;
 import com.smartclient.fpsbooster.config.ModConfig;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class OverlayPositionScreen extends Screen {
     private final Screen parent;
@@ -15,7 +15,7 @@ public class OverlayPositionScreen extends Screen {
     private int overlayHeight = 50;
     
     public OverlayPositionScreen(Screen parent) {
-        super(Text.literal("Position Overlay"));
+        super(Component.literal("Position Overlay"));
         this.parent = parent;
     }
     
@@ -31,89 +31,88 @@ public class OverlayPositionScreen extends Screen {
             dragY = 50;
         }
         
-        this.addDrawableChild(ButtonWidget.builder(
-            Text.literal("Reset to Corner"),
+        this.addRenderableWidget(Button.builder(
+            Component.literal("Reset to Corner"),
             button -> {
                 config.setUseCustomPosition(false);
-                this.close();
+                this.onClose();
             }
-        ).dimensions(this.width / 2 - 155, this.height - 35, 150, 20).build());
+        ).bounds(this.width / 2 - 155, this.height - 35, 150, 20).build());
         
-        this.addDrawableChild(ButtonWidget.builder(
-            Text.literal("Save Position"),
+        this.addRenderableWidget(Button.builder(
+            Component.literal("Save Position"),
             button -> {
                 config.setOverlayX(dragX);
                 config.setOverlayY(dragY);
                 config.setUseCustomPosition(true);
                 config.saveOverlayPosition();
-                this.close();
+                this.onClose();
             }
-        ).dimensions(this.width / 2 + 5, this.height - 35, 150, 20).build());
+        ).bounds(this.width / 2 + 5, this.height - 35, 150, 20).build());
     }
     
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // Don't call super.renderBackground - just draw a semi-transparent overlay
-        context.fill(0, 0, this.width, this.height, 0x90000000);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        Theme.backdrop(context, this.width, this.height);
         
-        context.drawCenteredTextWithShadow(this.textRenderer, "Drag the overlay to position it", this.width / 2, 15, 0xFFFFFFFF);
-        context.drawCenteredTextWithShadow(this.textRenderer, "Click and drag the box", this.width / 2, 30, 0xFF888888);
+        Theme.centered(context, this.font, "Drag the overlay to position it", this.width / 2, 16, Theme.TEXT);
+        Theme.centered(context, this.font, "Click and drag the preview box", this.width / 2, 30, Theme.TEXT_DIM);
         
-        int borderColor = dragging ? 0xFF4ecca3 : 0xFF3282b8;
-        context.fill(dragX - 4, dragY - 4, dragX + overlayWidth, dragY + overlayHeight, 0xDD16162a);
-        context.drawBorder(dragX - 4, dragY - 4, overlayWidth + 4, overlayHeight + 4, borderColor);
+        int borderColor = dragging ? Theme.GOOD : Theme.ACCENT;
+        context.fillGradient(dragX - 5, dragY - 5, dragX + overlayWidth, dragY + overlayHeight, 0xEE1B1E33, 0xEE0F1120);
+        context.fill(dragX - 5, dragY - 5, dragX - 2, dragY + overlayHeight, borderColor);
+        context.outline(dragX - 5, dragY - 5, overlayWidth + 5, overlayHeight + 5, borderColor);
         
-        context.drawTextWithShadow(this.textRenderer, "FPS: 60", dragX, dragY, 0xFF4ecca3);
-        context.drawTextWithShadow(this.textRenderer, "Avg: 58", dragX, dragY + 12, 0xFFaaaaaa);
+        context.text(this.font, "FPS  60", dragX, dragY, Theme.GOOD, true);
+        context.text(this.font, "Avg  58", dragX, dragY + 12, Theme.TEXT_DIM, true);
         
         int barY = dragY + 28;
         int barWidth = overlayWidth - 12;
-        context.fill(dragX, barY, dragX + barWidth, barY + 8, 0xFF333333);
-        context.fill(dragX, barY, dragX + (int)(barWidth * 0.45), barY + 8, 0xFF4ecca3);
+        Theme.bar(context, dragX, barY, barWidth, 8, 0.45f, Theme.GOOD);
         
-        context.drawCenteredTextWithShadow(this.textRenderer, 
+        Theme.centered(context, this.font,
             String.format("Position: X=%d, Y=%d", dragX, dragY), this.width / 2, this.height - 55, 0xFF888888);
-        
-        super.render(context, mouseX, mouseY, delta);
     }
     
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubled) {
+        if (click.button() == 0) {
+            double mouseX = click.x();
+            double mouseY = click.y();
             if (mouseX >= dragX - 4 && mouseX <= dragX + overlayWidth &&
                 mouseY >= dragY - 4 && mouseY <= dragY + overlayHeight) {
                 dragging = true;
                 return true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(click, doubled);
     }
     
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (button == 0) {
+    public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent click) {
+        if (click.button() == 0) {
             dragging = false;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(click);
     }
     
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+    public boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent click, double deltaX, double deltaY) {
         if (dragging) {
-            dragX = (int) Math.max(4, Math.min(mouseX - overlayWidth / 2, this.width - overlayWidth - 4));
-            dragY = (int) Math.max(4, Math.min(mouseY - overlayHeight / 2, this.height - overlayHeight - 70));
+            dragX = (int) Math.max(4, Math.min(click.x() - overlayWidth / 2, this.width - overlayWidth - 4));
+            dragY = (int) Math.max(4, Math.min(click.y() - overlayHeight / 2, this.height - overlayHeight - 70));
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+        return super.mouseDragged(click, deltaX, deltaY);
     }
     
     @Override
-    public void close() {
-        this.client.setScreen(parent);
+    public void onClose() {
+        this.minecraft.setScreenAndShow(parent);
     }
     
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }

@@ -5,7 +5,7 @@ import com.smartclient.fpsbooster.config.ModConfig;
 import com.smartclient.fpsbooster.profile.OptimizationProfile;
 import com.smartclient.fpsbooster.profile.ProfileManager;
 import com.smartclient.fpsbooster.ui.NotificationManager;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 public class OptimizationManager {
     private final ModConfig config;
@@ -30,10 +30,10 @@ public class OptimizationManager {
     }
     
     public void tick() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         
         // Update FPS monitor every tick
-        fpsMonitor.update(client.getCurrentFps());
+        fpsMonitor.update(client.getFps());
         
         // Update benchmark if running
         benchmarkManager.tick();
@@ -60,8 +60,8 @@ public class OptimizationManager {
         }
     }
     
-    private void checkContextChange(MinecraftClient client) {
-        boolean isMultiplayer = client.getCurrentServerEntry() != null;
+    private void checkContextChange(Minecraft client) {
+        boolean isMultiplayer = client.getCurrentServer() != null;
         
         if (isMultiplayer != wasMultiplayer) {
             wasMultiplayer = isMultiplayer;

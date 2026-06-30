@@ -58,7 +58,7 @@ public class SmartFPSBoosterClient implements ClientModInitializer {
                 }
             }
             
-            if (client.world != null) {
+            if (client.level != null) {
                 optimizationManager.tick();
             }
         });

@@ -1,7 +1,7 @@
 package com.smartclient.fpsbooster.ui;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * Simple single notification system - shows only ONE notification at a time
@@ -37,13 +37,13 @@ public class NotificationManager {
         }
     }
     
-    public static void render(DrawContext context) {
+    public static void render(GuiGraphicsExtractor context) {
         if (currentMessage == null || ticksRemaining <= 0) return;
         
-        MinecraftClient client = MinecraftClient.getInstance();
-        int screenWidth = client.getWindow().getScaledWidth();
+        Minecraft client = Minecraft.getInstance();
+        int screenWidth = client.getWindow().getGuiScaledWidth();
         
-        int width = client.textRenderer.getWidth(currentMessage) + 16;
+        int width = client.font.width(currentMessage) + 16;
         int x = screenWidth - width - 5;
         int y = 5;
         
@@ -52,13 +52,15 @@ public class NotificationManager {
         int bgAlpha = (int) (180 * alpha);
         int textAlpha = (int) (255 * alpha);
         
-        int bgColor = (bgAlpha << 24) | 0x101830;
-        int borderColor = (textAlpha << 24) | 0x4080c0;
+        int bgTop = (bgAlpha << 24) | 0x202438;
+        int bgBot = (bgAlpha << 24) | 0x121626;
+        int borderColor = (textAlpha << 24) | 0x4C8DFF;
         int textColor = (textAlpha << 24) | 0xFFFFFF;
         
-        context.fill(x, y, x + width, y + 16, bgColor);
-        context.drawBorder(x, y, width, 16, borderColor);
-        context.drawTextWithShadow(client.textRenderer, currentMessage, x + 8, y + 4, textColor);
+        context.fillGradient(x, y, x + width, y + 16, bgTop, bgBot);
+        context.fill(x, y, x + 2, y + 16, borderColor); // accent bar
+        context.outline(x, y, width, 16, borderColor);
+        context.text(client.font, currentMessage, x + 8, y + 4, textColor, true);
     }
     
     public static void clear() {

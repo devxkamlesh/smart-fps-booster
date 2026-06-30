@@ -2,7 +2,7 @@ package com.smartclient.fpsbooster.optimization;
 
 import com.smartclient.fpsbooster.SmartFPSBoosterClient;
 import com.smartclient.fpsbooster.config.ModConfig;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,8 +23,8 @@ public class BenchmarkManager {
     public void startBenchmark(Runnable onComplete) {
         if (running) return;
         
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.world == null) return;
+        Minecraft client = Minecraft.getInstance();
+        if (client.level == null) return;
         
         this.running = true;
         this.ticksRemaining = BENCHMARK_DURATION_TICKS;
@@ -37,14 +37,14 @@ public class BenchmarkManager {
     public void tick() {
         if (!running) return;
         
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null) {
             cancel();
             return;
         }
         
         // Record FPS every tick
-        fpsReadings.add(client.getCurrentFps());
+        fpsReadings.add(client.getFps());
         
         ticksRemaining--;
         
