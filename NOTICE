@@ -1,0 +1,24 @@
+Smart FPS Booster
+Copyright (c) 2026 Kamlesh Choudhary (DevXKamlesh)
+All Rights Reserved.
+
+Author:   devxkamlesh
+Homepage: https://github.com/devxkamlesh/smart-fps-booster
+Source:   https://github.com/devxkamlesh/smart-fps-booster
+Issues:   https://github.com/devxkamlesh/smart-fps-booster/issues
+
+Official distribution channels:
+- GitHub:     https://github.com/devxkamlesh/smart-fps-booster
+- Modrinth:   https://modrinth.com/mod/smart-fps-booster
+- CurseForge: https://www.curseforge.com/minecraft/mc-mods/smart-fps-booster
+
+This mod is distributed under a proprietary license. See the LICENSE file for the
+full terms. In short: free for personal, non-commercial use only. Redistribution,
+re-uploading, modification-and-redistribution, monetization, and inclusion in
+modpacks are NOT permitted without prior written permission from the author.
+
+This product is not affiliated with or approved by Mojang or Microsoft.
+NOT AN OFFICIAL MINECRAFT PRODUCT.
+
+Third-party components used at runtime (under their own licenses):
+- Fabric Loader & Fabric API (Apache License 2.0) - https://fabricmc.net

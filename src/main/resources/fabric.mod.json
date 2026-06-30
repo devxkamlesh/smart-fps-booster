@@ -6,7 +6,7 @@
   "description": "Intelligent auto-optimization mod that configures Minecraft settings based on your hardware and gameplay style.",
   "authors": ["devxkamlesh"],
   "contact": {
-    "homepage": "https://modrinth.com/user/devxkamlesh",
+    "homepage": "https://github.com/devxkamlesh/smart-fps-booster",
     "sources": "https://github.com/devxkamlesh/smart-fps-booster",
     "issues": "https://github.com/devxkamlesh/smart-fps-booster/issues"
   },
